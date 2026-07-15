@@ -1,0 +1,10 @@
+[workspace]
+members = [
+    "token_gate",
+    "governance",
+    "reputation",
+]
+resolver = "2"
+
+[workspace.dependencies]
+soroban-sdk = "21"
