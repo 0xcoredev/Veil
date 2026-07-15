@@ -1,13 +1,17 @@
 // Soroban contract interaction helpers
 // These functions interact with deployed Soroban contracts on testnet
 
-import { Contract, Address, TransactionBuilder } from "@stellar/stellar-sdk";
-import { rpc } from "@stellar/stellar-sdk";
-
 const RPC_URL = process.env.NEXT_PUBLIC_STELLAR_RPC_URL!;
 const NETWORK_PASSPHRASE = process.env.NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE!;
 
-const rpcServer = new rpc.Server(RPC_URL);
+function getRpcServer() {
+  const { rpc } = require("@stellar/stellar-sdk");
+  return new rpc.Server(RPC_URL);
+}
+
+function getStellarModules() {
+  return require("@stellar/stellar-sdk");
+}
 
 // Contract IDs (set after deployment)
 export const CONTRACT_IDS = {
@@ -23,11 +27,13 @@ export async function checkTokenGateAccess(
   roomId: string
 ): Promise<boolean> {
   if (!CONTRACT_IDS.tokenGate) {
-    console.warn("Token gate contract not deployed");
     return true;
   }
 
   try {
+    const { Contract, Address, TransactionBuilder } = getStellarModules();
+    const { rpc } = getStellarModules();
+    const rpcServer = getRpcServer();
     const contract = new Contract(CONTRACT_IDS.tokenGate);
     const user = new Address(userAddress);
 
@@ -57,11 +63,13 @@ export async function createProposal(
   targetUser: string
 ): Promise<number | null> {
   if (!CONTRACT_IDS.governance) {
-    console.warn("Governance contract not deployed");
     return null;
   }
 
   try {
+    const { Contract, Address, TransactionBuilder } = getStellarModules();
+    const { rpc } = getStellarModules();
+    const rpcServer = getRpcServer();
     const contract = new Contract(CONTRACT_IDS.governance);
     const proposer = new Address(proposerAddress);
     const target = new Address(targetUser);
@@ -93,6 +101,9 @@ export async function getReputation(
   }
 
   try {
+    const { Contract, Address, TransactionBuilder } = getStellarModules();
+    const { rpc } = getStellarModules();
+    const rpcServer = getRpcServer();
     const contract = new Contract(CONTRACT_IDS.reputation);
     const user = new Address(userAddress);
 
@@ -123,12 +134,12 @@ export async function checkTokenBalance(
   assetIssuer?: string
 ): Promise<number> {
   try {
-    const { Horizon } = await import("@stellar/stellar-sdk");
+    const { Horizon } = getStellarModules();
     const horizonServer = new Horizon.Server(
       process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL!
     );
     const account = await horizonServer.loadAccount(userAddress);
-    const balance = account.balances.find((b) => {
+    const balance = account.balances.find((b: any) => {
       if (assetCode === "XLM" && b.asset_type === "native") return true;
       return (
         "asset_code" in b &&

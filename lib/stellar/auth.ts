@@ -1,24 +1,25 @@
 import {
   Keypair,
   TransactionBuilder,
-  Networks,
   Operation,
   Transaction,
 } from "@stellar/stellar-sdk";
-import { Horizon } from "@stellar/stellar-sdk";
 import jwt from "jsonwebtoken";
 
 const HOME_DOMAIN = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const SERVER_SECRET = process.env.STELLAR_SERVER_SECRET!;
 const JWT_SECRET = process.env.JWT_SECRET!;
-const HORIZON_URL = process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL!;
 const NETWORK_PASSPHRASE =
   process.env.NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE!;
 
-const server = new Horizon.Server(HORIZON_URL);
+function getHorizonServer() {
+  const { Horizon } = require("@stellar/stellar-sdk");
+  return new Horizon.Server(process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL!);
+}
 
 export async function generateChallenge(account: string) {
   const serverKeypair = Keypair.fromSecret(SERVER_SECRET);
+  const server = getHorizonServer();
   const serverAccount = await server.loadAccount(serverKeypair.publicKey());
 
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
@@ -52,12 +53,10 @@ export async function generateChallenge(account: string) {
 export function verifyChallenge(signedXdr: string): { address: string; token: string } {
   const tx = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE) as Transaction;
 
-  // Verify sequence number is 0 (challenge-response convention)
   if (tx.sequence !== "0") {
     throw new Error("Invalid sequence number");
   }
 
-  // Verify time bounds
   const now = Math.floor(Date.now() / 1000);
   if (tx.timeBounds) {
     if (now < Number(tx.timeBounds.minTime) || now > Number(tx.timeBounds.maxTime)) {
@@ -65,19 +64,17 @@ export function verifyChallenge(signedXdr: string): { address: string; token: st
     }
   }
 
-  // Extract client account from first operation
   const clientAccount = tx.operations[0].source;
   if (!clientAccount) {
     throw new Error("No source account in transaction");
   }
 
-  // Generate JWT
   const token = jwt.sign(
     {
       sub: clientAccount,
       iss: HOME_DOMAIN,
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour
+      exp: Math.floor(Date.now() / 1000) + 60 * 60,
     },
     JWT_SECRET
   );
