@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import ConnectWallet from "./wallet-connector";
+import { NetworkBadge } from "./network-badge";
 import { Menu, X, Shield } from "lucide-react";
 
 export function Header() {
@@ -16,6 +17,7 @@ export function Header() {
             <Shield className="h-4 w-4 text-primary-foreground" />
           </div>
           <span className="text-xl font-bold">Veil</span>
+          <NetworkBadge />
         </Link>
 
         <div className="hidden md:flex items-center gap-8">
