@@ -6,7 +6,7 @@ use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, E
 #[contracttype]
 pub enum DataKey {
     Proposals(Symbol),      // room_id -> Vec<Proposal>
-    Votes(Symbol),          // proposal_id -> Vec<Vote>
+    Votes(u32),            // proposal_id -> Vec<Vote>
     ProposalCount,
 }
 
@@ -116,13 +116,13 @@ impl Governance {
             proposal.votes_against += 1;
         }
 
-        // Store vote
+        // Store vote using proposal ID
         let vote = Vote {
             voter: voter.clone(),
             support,
         };
 
-        let votes_key = DataKey::Votes(symbol_short!(&proposal.id.to_string()));
+        let votes_key = DataKey::Votes(proposal.id);
         let mut votes: Vec<Vote> = env
             .storage()
             .persistent()
@@ -147,7 +147,7 @@ impl Governance {
         room_id: Symbol,
         proposal_index: u32,
     ) -> bool {
-        let proposals_key = DataKey::Proposals(room_id);
+        let proposals_key = DataKey::Proposals(room_id.clone());
         let mut proposals: Vec<Proposal> = env
             .storage()
             .persistent()
@@ -176,7 +176,7 @@ impl Governance {
 
         // Emit event for frontend to handle actual enforcement
         env.events().publish(
-            symbol_short!("EXECUTED"),
+            (symbol_short!("EXECUTED"),),
             (room_id, proposal_index),
         );
 
