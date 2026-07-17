@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import ConnectWallet from "@/components/wallet-connector";
+import { FeedbackButton } from "@/components/feedback-dialog";
 import { cn } from "@/lib/utils";
 import { handleAppError } from "@/lib/error-handler";
 import {
@@ -595,6 +596,8 @@ export default function ChatPage() {
           </div>
         </div>
       )}
+
+      <FeedbackButton />
     </div>
   );
 }
