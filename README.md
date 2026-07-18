@@ -2,6 +2,13 @@
 
 > Speak freely. Stay veiled. Powered by Stellar.
 
+---
+
+### 🟢 Level 4 Green Belt Submission
+Reviewing this project for the Rise In / Stellar Level 4 review? All required evaluation evidence (proof of 10+ wallet interactions, contract addresses, user feedback, and screenshots) is organized in our **[Level 4 Submission Guide](SUBMISSION.md)**.
+
+---
+
 Veil is a **privacy-first anonymous chat application** built on the Stellar network. It features end-to-end encrypted messaging, wallet-based authentication, token-gated communities, DAO governance, and micropayments — all without requiring personal data.
 
 ## Features

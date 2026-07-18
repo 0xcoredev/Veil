@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+let mockMessages: any[] = [];
+
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
-
-  if (!supabase) {
-    return NextResponse.json({ messages: [], demo: true });
-  }
-
   const { searchParams } = new URL(request.url);
   const roomId = searchParams.get("room_id");
   const limit = parseInt(searchParams.get("limit") || "100");
@@ -15,6 +12,13 @@ export async function GET(request: NextRequest) {
 
   if (!roomId) {
     return NextResponse.json({ error: "room_id required" }, { status: 400 });
+  }
+
+  if (!supabase) {
+    const filtered = mockMessages
+      .filter((m) => m.room_id === roomId)
+      .slice(offset, offset + limit);
+    return NextResponse.json({ messages: filtered, demo: true });
   }
 
   const { data, error } = await supabase
@@ -33,24 +37,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
-
-  if (!supabase) {
-    return NextResponse.json(
-      { error: "Supabase not configured. Set up your .env.local first." },
-      { status: 503 }
-    );
-  }
-
   const body = await request.json();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { room_id, content } = body;
 
   if (!room_id || !content) {
@@ -58,6 +45,27 @@ export async function POST(request: NextRequest) {
       { error: "room_id and content required" },
       { status: 400 }
     );
+  }
+
+  if (!supabase) {
+    const demoMessage = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      room_id,
+      user_id: "00000000-0000-0000-0000-000000000000",
+      content,
+      is_encrypted: content.startsWith("vault:"),
+      created_at: new Date().toISOString(),
+    };
+    mockMessages.push(demoMessage);
+    return NextResponse.json({ message: demoMessage }, { status: 201 });
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { data: membership } = await supabase

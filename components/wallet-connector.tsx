@@ -5,6 +5,7 @@ import { isConnected, requestAccess, signTransaction } from "@stellar/freighter-
 import { truncateAddress } from "@/lib/utils";
 import { toast } from "sonner";
 import { Wallet, LogOut, Copy, Check } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 interface WalletState {
   connected: boolean;
@@ -21,6 +22,12 @@ export default function ConnectWallet() {
   const [copied, setCopied] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
+  const isSupabaseConfigured =
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("your-project-url") &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.includes("your-anon-key");
+
   useEffect(() => {
     checkConnection();
   }, []);
@@ -31,6 +38,27 @@ export default function ConnectWallet() {
       if (result.isConnected) {
         const access = await requestAccess();
         if (!access.error) {
+          if (isSupabaseConfigured) {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.user_metadata?.stellar_address === access.address) {
+              setState({
+                connected: true,
+                address: access.address,
+                loading: false,
+              });
+              return;
+            }
+            // User mismatch or not logged in, clear state
+            setState({
+              connected: false,
+              address: null,
+              loading: false,
+            });
+            return;
+          }
+
+          // Fallback to mock mode if Supabase not configured
           setState({
             connected: true,
             address: access.address,
@@ -58,20 +86,63 @@ export default function ConnectWallet() {
         throw new Error(access.error.message);
       }
 
+      const address = access.address;
+
+      if (isSupabaseConfigured) {
+        // Request challenge XDR
+        const challengeRes = await fetch(`/api/auth/challenge?account=${address}`);
+        if (!challengeRes.ok) {
+          throw new Error("Failed to get authentication challenge from server");
+        }
+        const challengeData = await challengeRes.json();
+
+        // Sign transaction using Freighter wallet
+        const signedTx = await signTransaction(challengeData.transaction, {
+          networkPassphrase: challengeData.network_passphrase,
+        });
+
+        // Exchange for token and establish Supabase session
+        const tokenRes = await fetch("/api/auth/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transaction: signedTx }),
+        });
+
+        if (!tokenRes.ok) {
+          const errData = await tokenRes.json();
+          throw new Error(errData.error || "Authentication failed");
+        }
+
+        const tokenData = await tokenRes.json();
+
+        // Set the session in the client-side Supabase client
+        const supabase = createClient();
+        if (tokenData.session && typeof supabase.auth.setSession === "function") {
+          await supabase.auth.setSession({
+            access_token: tokenData.session.access_token,
+            refresh_token: tokenData.session.refresh_token,
+          });
+        }
+      }
+
       setState({
         connected: true,
-        address: access.address,
+        address,
         loading: false,
       });
       toast.success("Wallet connected!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Connection failed:", error);
-      toast.error("Failed to connect wallet");
+      toast.error(error?.message || "Failed to connect wallet");
       setState((prev) => ({ ...prev, loading: false }));
     }
-  }, []);
+  }, [isSupabaseConfigured]);
 
-  const disconnect = useCallback(() => {
+  const disconnect = useCallback(async () => {
+    const supabase = createClient();
+    if (typeof supabase.auth.signOut === "function") {
+      await supabase.auth.signOut();
+    }
     setState({ connected: false, address: null, loading: false });
     setShowDropdown(false);
     toast.success("Wallet disconnected");

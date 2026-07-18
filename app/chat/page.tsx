@@ -7,6 +7,7 @@ import ConnectWallet from "@/components/wallet-connector";
 import { FeedbackButton } from "@/components/feedback-dialog";
 import { cn } from "@/lib/utils";
 import { handleAppError } from "@/lib/error-handler";
+import { createClient } from "@/lib/supabase/client";
 import {
   ArrowLeft,
   MessageSquare,
@@ -139,6 +140,71 @@ export default function ChatPage() {
     },
     [transformToChatMessage]
   );
+
+  useEffect(() => {
+    const supabase = createClient();
+    const isSupabaseConfigured =
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("your-project-url") &&
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+      !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.includes("your-anon-key");
+
+    if (isSupabaseConfigured) {
+      if (supabase.auth && typeof supabase.auth.getUser === "function") {
+        supabase.auth.getUser().then((res: any) => {
+          const user = res?.data?.user;
+          if (user) {
+            setCurrentUser({
+              id: user.id,
+              stellar_address: user.user_metadata?.stellar_address,
+            });
+          }
+        });
+      }
+
+      if (supabase.auth && typeof supabase.auth.onAuthStateChange === "function") {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+          if (session?.user) {
+            setCurrentUser({
+              id: session.user.id,
+              stellar_address: session.user.user_metadata?.stellar_address,
+            });
+          } else {
+            setCurrentUser(null);
+          }
+        });
+
+        return () => {
+          subscription.unsubscribe();
+        };
+      }
+    } else {
+      // In demo mode: dynamically fetch Freighter connection status to set mock currentUser
+      const checkFreighter = async () => {
+        try {
+          const { isConnected, requestAccess } = require("@stellar/freighter-api");
+          const result = await isConnected();
+          if (result.isConnected) {
+            const access = await requestAccess();
+            if (!access.error) {
+              setCurrentUser({
+                id: "00000000-0000-0000-0000-000000000000",
+                stellar_address: access.address,
+              });
+              return;
+            }
+          }
+          setCurrentUser(null);
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      checkFreighter();
+
+      const interval = setInterval(checkFreighter, 2000);
+      return () => clearInterval(interval);
+    }
+  }, []);
 
   useEffect(() => {
     fetchRooms();
