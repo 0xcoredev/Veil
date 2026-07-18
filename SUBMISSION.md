@@ -187,27 +187,4 @@ veil/
 └── README.md               # Full documentation
 ```
 
----
 
-## 10. Commits (19 total)
-```
-8d672b9 chore: remove Rust build artifacts from tracking
-c0a8ffc chore: add Rust build artifacts to gitignore
-f6644d0 fix: fix governance contract compilation and build all contracts
-828f30b chore: harden Next.js config with security headers and webpack fallbacks
-d8cce80 feat: add network badge and wallet info display
-05684b9 feat: add analytics, feedback, PWA support, and error handling
-70dd34f fix: lazy-load Stellar SDK to prevent build-time URL errors
-567fa75 docs: add comprehensive README with architecture and setup guide
-c10af29 feat: add Supabase database migrations
-584d4a6 feat: add Soroban contract interaction helpers
-1d05617 feat: add Soroban smart contracts (Rust)
-51a783a feat: add chat interface with real-time messaging UI
-6f7d134 feat: add API routes for auth, rooms, and messages
-aefba59 feat: add E2E encryption with Web Crypto API
-b1fd699 feat: add Stellar authentication and payment helpers
-c86fc42 feat: add Supabase client utilities and shared helpers
-b3103fa feat: add UI components for landing page and wallet connector
-87f4666 feat: add root layout with theme provider and global styles
-58c9316 chore: initialize Next.js 16 project with TypeScript and Tailwind CSS
-```
