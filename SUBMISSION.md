@@ -100,7 +100,8 @@ All transactions can be verified on the Stellar testnet explorer:
 ---
 
 ## 6. Demo Video
-*[Add Loom/YouTube demo video link here]*
+**Link:** https://www.loom.com/share/26836527e8f9424bb02bd5ace67ffda5
+
 
 **Demo should cover:**
 1. Landing page overview
